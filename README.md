@@ -45,20 +45,21 @@ The code for this step is contained in the file "MyLaneFinder_SaveFiles.py" loca
 
 First the camera calibration is done (in line#35 to line#152). Based on a flag, either a new camera setting be calibrated or the camera matrix and distortion coefficient of a pre-calibrated camera be directly used. The camera has been calibrated by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard of size 9x6 is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection. The corner marked files are stored in "./camera_cal/cornerSavedFiles/" folder.
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+I then used the output `objpoints` and `imgpoints` to compute the camera matrix and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
 
 ![alt text][image1]
 
 ### Pipeline (single images)
+#### 1. Provide examples of distorted images taken from a real camera.
+Below are some of the images of snaps taken from a real camera. Therefore, the images do have certain distortions (tangential and radial) inherent to them. They are so subtle that hardly they will be perceivable unless the un-distortion is carried out. 
+#### 2. Provide an example of a distortion-corrected image.
 
-#### 1. Provide an example of a distortion-corrected image.
-
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+To demonstrate the un-distortion of images, the "cv2.undistort(img,mtx,dist,None,mtx)" function from opencv library has been used. This takes the camera matrix and the distortion coefficients as input for undistorting the images. This is done on line#552 in the code "MyLaneFinder.py" in the "./examples/" folder. The undistorted images corresponding to the above mentioned original images are shown below:
 ![alt text][image2]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+This is done on line#554-556 with the function "sobelFilteredImg(undist)" in the code "MyLaneFinder.py" in the "./examples/" folder. It takes the undistorted image from the previous step and generate a binary image. s_channel threshholding on the hsv-space and sobel filter based gradient filtering of th el-channel is used for generating this binary image. The binary images corresponding to the above mentioned original images are shown below:
 
 ![alt text][image3]
 
