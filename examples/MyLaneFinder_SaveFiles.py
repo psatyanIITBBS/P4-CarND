@@ -3,12 +3,18 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg 
-#%matplotlib qt
 
 VF_IR_Bullet_8mm = False
 Udacity = True
 GoPro = False
 
+# Three types of camera calibration for three types of videos taken from different cameras. The respective Camera 
+# matrix and distortion coefficient will be used. Here the data from Udacity is being used.
+VF_IR_Bullet_8mm = False
+Udacity = True
+GoPro = False
+
+# The following flags are for processing the still frames only. That is why all the flags now are set to false.
 # For using a pre-calibrated camera, set this flag to False. For first time calibration, set it to True.
 CameraCalibrateFlag = False
 # For using an already undistorted images, set this flag to False. For undistorting for the first time, set it to True.
@@ -16,14 +22,135 @@ undistortFlag = False
 # For using images that have already been converted to color-binary, set this flag to False. 
 # For creating the color-binaries for the first time, set it to True.
 colorBinaryFlag = False
-
+# For using images that have already been converted to top view, set this flag to False. 
+# For creating the top view for the first time, set it to True.
 getTopViewFlag = False
-
+# For using images that have already been converted to Plyfit view, set this flag to False. 
+# For creating the Plyfit view for the first time, set it to True.
 getPolyfitFlag = False
-
-getWithRoadMarkersFlag = True 
-
+# For using images that have already been converted to RoadWithMarker view, set this flag to False. 
+# For creating the RoadWithMarker view for the first time, set it to True.
+getWithRoadMarkersFlag = True
 #**********************************************************************************
+#..................................................................................
+# For using a new camera for which alibration data is not available
+# Run the calibration job only once for a given camera and store the 
+# camera matrix and the distortion corfficients for the camera for later use.
+if CameraCalibrateFlag == True:
+    if VF_IR_Bullet_8mm == True:
+        nx = 13
+        ny = 7
+    if Udacity == True:
+        nx = 9
+        ny = 6
+    if GoPro == True:
+        nx = 7
+        ny = 7
+    # termination criteria for cv2.cornerSubPix() function
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    
+    # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+    objp = np.zeros((ny*nx,3), np.float32)
+    objp[:,:2] = np.mgrid[0:nx,0:ny].T.reshape(-1,2)
+    
+    # Arrays to store object points and image points from all the images.
+    objpoints = [] # 3d points in real world space
+    imgpoints = [] # 2d points in image plane.
+    
+    # Make a list of calibration images
+    if VF_IR_Bullet_8mm == True:
+        images = glob.glob('../camera_cal/VF_IR_8mmFL_Edited/8mm_*.png')   # VF_IR_Bullet_8mmFL Database
+        cornerFilesPath = '../camera_cal/VF_IR_8mmFL_Edited/cornerSavedFiles/'  
+        undistFilesPath = '../camera_cal/VF_IR_8mmFL_Edited/undistortSavedFiles/'  
+    if Udacity == True:
+        images = glob.glob('../camera_cal/calibration*.jpg')   # Udacity Database
+        cornerFilesPath = '../camera_cal/cornerSavedFiles/'   
+        undistFilesPath = '../camera_cal/undistortSavedFiles/'   
+    if GoPro == True:
+        images = glob.glob('../camera_cal/GoPro/GOPR13*.jpg')   # GoPro Database
+        cornerFilesPath = '../camera_cal/GoPro/cornerSavedFiles/'   
+        undistFilesPath = '../camera_cal/GoPro/undistortSavedFiles/'  
+    
+    # Step through the list and search for chessboard corners
+    for fname in images:
+        
+        # Read the image file in BGR mode
+        img = cv2.imread(fname)
+        
+        # Extract the filename of the image from its path
+        filenameOnly = fname.split('\\')[-1]
+        
+        # Convert to GRAY scale
+        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    
+        # Find the chessboard corners
+        ret, corners = cv2.findChessboardCorners(gray, (nx,ny),None)
+    
+        # If found, add object points, image point
+        if ret == True:
+            # Append Object points to the global ObjectPoint list
+            objpoints.append(objp)
+            
+            # Try to get the best point to be marrked as corner
+            cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
+            
+            # Append Image points to the global ImagePoint list
+            imgpoints.append(corners)
+    
+            # Draw and display the corners
+            img = cv2.drawChessboardCorners(img, (nx,ny), corners, ret)
+            cv2.imshow('img',img)
+            
+            # Saves the images marked with corners in a folder
+            cornerFilesName = cornerFilesPath + filenameOnly 
+            cv2.imwrite(cornerFilesName,img)
+            
+            # Wait for half a second
+            cv2.waitKey(500)
+    
+    for fname in images:
+        img = cv2.imread(fname)
+        filenameOnly = fname.split('\\')[-1]
+        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        ret,mtx,dist,rvecs,tvecs = cv2.calibrateCamera(objpoints,imgpoints,gray.shape[::-1],None,None)
+        undist = cv2.undistort(img,mtx,dist,None,mtx)
+        undistFilesName = undistFilesPath + filenameOnly 
+        cv2.imwrite(undistFilesName,undist)    
+    
+    print('Using the a new camera with unknown focal length...')
+    print('')    
+    print('Camera Matrix = ',mtx)
+    print('')
+    print('Distortion Coefficiants = ', dist)
+#.............................................................................................
+
+#.............................................................................................
+# For using pre-calibrated camera 
+if CameraCalibrateFlag == False:
+    # Camera calibration for VF_IR_Bullet for 8mm Focal Length 
+    if VF_IR_Bullet_8mm == True:
+        mtx =  [[1.65521864e+03, 0.00000000e+00, 4.78550170e+02], 
+                [0.00000000e+00, 1.66185960e+03, 3.35281163e+02], 
+                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+        dist =  [[-2.63844771e-01, -6.01216069e-01, -1.86507107e-03, -3.60339565e-03,2.86392537e+00]]
+        print('Using the VF_IR_Bullet camera with 8 mm focal length...')
+        print('')
+        print('Camera Matrix = ',mtx)
+        print('Distortion Coefficiants = ', dist)        
+        
+    # Camera calibration for Udacity camera (probably 6 mm focal length)
+    if Udacity == True:         
+        mtx =  np.array([[1.15694047e+03, 0.00000000e+00, 6.65948820e+02],
+                [0.00000000e+00, 1.15213880e+03, 3.88784788e+02],
+                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+        dist =  np.array([[-2.37638062e-01, -8.54041477e-02, -7.90999654e-04, -1.15882246e-04,1.05725940e-01]])
+        print('Using the Udacity camera with 6 mm focal length...')
+        print('')
+        print('Camera Matrix = ',mtx)
+        print('')
+        print('Distortion Coefficiants = ', dist)          
+#.............................................................................................
+
 def undistortImage(folderString,fileString,mtx,dist):
     images = glob.glob(folderString + fileString)   # VF_IR_Bullet_8mmFL Database
     for fname in images:
@@ -36,8 +163,8 @@ def undistortImage(folderString,fileString,mtx,dist):
         cv2.imwrite(undistFilesName,undist)      
     return
 
-# Edit this function to create your own pipeline.
-def pipeline(img, s_thresh=(170, 255), sx_thresh=(20, 100)):
+# This function provides color space transformed and sobel filtered images.
+def sobelFilteredImg(img, s_thresh=(170, 255), sx_thresh=(20, 100)):
     img = np.copy(img)
     # Convert to HLS color space and separate the V channel
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
@@ -193,16 +320,11 @@ def fit_polynomial(binary_warped):
 
 def getRoad(img,left_fitx,right_fitx,ploty):
     road = np.zeros_like(img)
-    #plt.imshow(img)
     top_left = [left_fitx[0],0]
     top_right = [right_fitx[0],0]
     bottom_left = [left_fitx[-1],719]
     bottom_right = [right_fitx[-1],719]
     
-       
-    #leftx = (np.vstack([left_fitx,ploty]))
-    #rightx = np.flipud(np.vstack([right_fitx,ploty]))
-    #plt.plot(left_fitx, ploty, color='yellow')
     left = ()
     right = ()
     for i in range(len(left_fitx)):
@@ -215,141 +337,19 @@ def getRoad(img,left_fitx,right_fitx,ploty):
         right = right + (qwe,)
             
     temp = ()
-    #temp = temp + (left)
     temp = temp + (top_left,)
     temp = temp + (top_right,)
     temp = temp + (right)
     temp = temp + (bottom_right,)
     temp = temp + (bottom_left,)
     temp = temp + (left)
-    #temp = temp + (top_left,)
     
     triangle = np.array([temp], np.int32)
     cv2.fillConvexPoly(road, triangle, [0, 255, 0])
     result = cv2.addWeighted(img, 1, road, 0.3, 0)
-    #plt.imshow(result)
     return result, road
 
 #**********************************************************************************
-
-#..................................................................................
-# For using a new camera for which alibration data is not available
-# Run the calibration job only once for a given camera and store the 
-# camera matrix and the distortion corfficients for the camera for later use.
-if CameraCalibrateFlag == True:
-    if VF_IR_Bullet_8mm == True:
-        nx = 13
-        ny = 7
-    if Udacity == True:
-        nx = 9
-        ny = 6
-    if GoPro == True:
-        nx = 7
-        ny = 7
-    # termination criteria for cv2.cornerSubPix() function
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    
-    # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-    objp = np.zeros((ny*nx,3), np.float32)
-    objp[:,:2] = np.mgrid[0:nx,0:ny].T.reshape(-1,2)
-    
-    # Arrays to store object points and image points from all the images.
-    objpoints = [] # 3d points in real world space
-    imgpoints = [] # 2d points in image plane.
-    
-    # Make a list of calibration images
-    if VF_IR_Bullet_8mm == True:
-        images = glob.glob('../camera_cal/VF_IR_8mmFL_Edited/8mm_*.png')   # VF_IR_Bullet_8mmFL Database
-        cornerFilesPath = '../camera_cal/VF_IR_8mmFL_Edited/cornerSavedFiles/'  
-        undistFilesPath = '../camera_cal/VF_IR_8mmFL_Edited/undistortSavedFiles/'  
-    if Udacity == True:
-        images = glob.glob('../camera_cal/calibration*.jpg')   # Udacity Database
-        cornerFilesPath = '../camera_cal/cornerSavedFiles/'   
-        undistFilesPath = '../camera_cal/undistortSavedFiles/'   
-    if GoPro == True:
-        images = glob.glob('../camera_cal/GoPro/GOPR13*.jpg')   # GoPro Database
-        cornerFilesPath = '../camera_cal/GoPro/cornerSavedFiles/'   
-        undistFilesPath = '../camera_cal/GoPro/undistortSavedFiles/'  
-    
-    # Step through the list and search for chessboard corners
-    for fname in images:
-        
-        # Read the image file in BGR mode
-        img = cv2.imread(fname)
-        
-        # Extract the filename of the image from its path
-        filenameOnly = fname.split('\\')[-1]
-        
-        # Convert to GRAY scale
-        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    
-        # Find the chessboard corners
-        ret, corners = cv2.findChessboardCorners(gray, (nx,ny),None)
-    
-        # If found, add object points, image point
-        if ret == True:
-            # Append Object points to the global ObjectPoint list
-            objpoints.append(objp)
-            
-            # Try to get the best point to be marrked as corner
-            cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-            
-            # Append Image points to the global ImagePoint list
-            imgpoints.append(corners)
-    
-            # Draw and display the corners
-            img = cv2.drawChessboardCorners(img, (nx,ny), corners, ret)
-            cv2.imshow('img',img)
-            
-            # Saves the images marked with corners in a folder
-            cornerFilesName = cornerFilesPath + filenameOnly 
-            cv2.imwrite(cornerFilesName,img)
-            
-            # Wait for half a second
-            cv2.waitKey(500)
-    
-    for fname in images:
-        img = cv2.imread(fname)
-        filenameOnly = fname.split('\\')[-1]
-        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        ret,mtx,dist,rvecs,tvecs = cv2.calibrateCamera(objpoints,imgpoints,gray.shape[::-1],None,None)
-        undist = cv2.undistort(img,mtx,dist,None,mtx)
-        undistFilesName = undistFilesPath + filenameOnly 
-        cv2.imwrite(undistFilesName,undist)    
-    
-    print('Using the a new camera with unknown focal length...')
-    print('')    
-    print('Camera Matrix = ',mtx)
-    print('')
-    print('Distortion Coefficiants = ', dist)
-#.............................................................................................
-
-#.............................................................................................
-# For using pre-calibrated camera 
-if CameraCalibrateFlag == False:
-    # Camera calibration for VF_IR_Bullet for 8mm Focal Length 
-    if VF_IR_Bullet_8mm == True:
-        mtx =  [[1.65521864e+03, 0.00000000e+00, 4.78550170e+02], 
-                [0.00000000e+00, 1.66185960e+03, 3.35281163e+02], 
-                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-        dist =  [[-2.63844771e-01, -6.01216069e-01, -1.86507107e-03, -3.60339565e-03,2.86392537e+00]]
-        print('Using the VF_IR_Bullet camera with 8 mm focal length...')
-        print('')
-        print('Camera Matrix = ',mtx)
-        print('Distortion Coefficiants = ', dist)        
-        
-    # Camera calibration for Udacity camera (probably 6 mm focal length)
-    if Udacity == True:         
-        mtx =  np.array([[1.15694047e+03, 0.00000000e+00, 6.65948820e+02],
-                [0.00000000e+00, 1.15213880e+03, 3.88784788e+02],
-                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
-        dist =  np.array([[-2.37638062e-01, -8.54041477e-02, -7.90999654e-04, -1.15882246e-04,1.05725940e-01]])
-        print('Using the Udacity camera with 6 mm focal length...')
-        print('')
-        print('Camera Matrix = ',mtx)
-        print('')
-        print('Distortion Coefficiants = ', dist)          
-#.............................................................................................
 
 
 #..........................................................................
@@ -365,70 +365,16 @@ if colorBinaryFlag == True:
     fileString = 'straight_lines*.jpg'
     getColorBinary(folderString,fileString)
 #..........................................................................
-def region_of_interest(img, vertices):
-    """
-    Applies an image mask.
-    
-    Only keeps the region of the image defined by the polygon
-    formed from `vertices`. The rest of the image is set to black.
-    `vertices` should be a numpy array of integer points.
-    """
-    #defining a blank mask to start with
-    mask = np.zeros_like(img)   
-    
-    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
-    if len(img.shape) > 2:
-        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
-        ignore_mask_color = (255,) * channel_count
-    else:
-        ignore_mask_color = 255
-        
-    #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-    
-    #returning the image only where mask pixels are nonzero
-    masked_image = cv2.bitwise_and(img, mask)
-    return masked_image
-
-def getROI(img):
-    temp1 = np.copy(img)
-    temp2 = np.copy(img)
-    ysize = img.shape[0]
-    xsize = img.shape[1]   
-    # Define a triangle region of interest 
-    # Keep in mind the origin (x=0, y=0) is in the upper left in image processing
-    # Note: if you run this code, you'll find these are not sensible values!!
-    # But you'll get a chance to play with them soon in a quiz 
    
-    left_bottom = (0, ysize-30)
-    right_bottom = (xsize, ysize-30)
-    left_top = (xsize//2-50, ysize//2)
-    right_top = (xsize//2+50, ysize//2)
-    
-    
-    #masked = white_yellow_filter(gray_image)
-    
-    vertices = np.array([[left_bottom,right_bottom,left_top, right_top ]])
-    masked_RoI = region_of_interest(temp1, vertices)
-    
-    
-    return masked_RoI
-    
-
 def getTopView(folderString,fileString,FourCorners):
     images = glob.glob(folderString + fileString)   # VF_IR_Bullet_8mmFL Database
     for fname in images:
         filenameOnly = fname.split('\\')[-1]
         fname = folderString + filenameOnly    
-        print(fname)
+        #print(fname)
         img = mpimg.imread(fname)
-        
         img_size = (img.shape[1],img.shape[0])
-        
-        #img = getROI(img)
         img_bot_half = img[:img.shape[0]-30,:]
-        #plt.imshow(img)        
-        #print(img_size)
         src = np.float32(
             [FourCorners[0],
             FourCorners[1],
@@ -442,7 +388,6 @@ def getTopView(folderString,fileString,FourCorners):
         dst = np.float32([[290,324],[990,324],[990,396],[290,396]])    
         M = cv2.getPerspectiveTransform(src,dst)
         Minv = cv2.getPerspectiveTransform(dst,src)
-        #print('M = ',M)
         topViewImg = cv2.warpPerspective(img_bot_half,M,img_size,flags=cv2.INTER_LINEAR)
         #topViewImg = cv2.warpPerspective(topViewImg,Minv,img_size,flags=cv2.INTER_LINEAR)
         topViewImgFilesName = folderString + 'top/' + filenameOnly 
@@ -471,10 +416,8 @@ def getPolyfit(folderString,fileString):
         left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
         right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]        
 
-        margin = 5  # NOTE: Keep this in sync with *_fit()
-   
-        # Draw the lines on the edge image
-        #combo = cv2.addWeighted(temp, 1, polyFitImage, 1, 0)         
+        margin = 5  
+           
         # Define y-value where we want radius of curvature
         # We'll choose the maximum y-value, corresponding to the bottom of the image
         # Define conversions in x and y from pixels space to meters
@@ -495,32 +438,6 @@ def getPolyfit(folderString,fileString):
         cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 255))
         result = cv2.addWeighted(polyFitImage, 1, window_img, 1, 0)
         
-        #margin = 100  # NOTE: Keep this in sync with *_fit()
-   
-        ## Draw the lines on the edge image
-        ##combo = cv2.addWeighted(temp, 1, polyFitImage, 1, 0)         
-        ## Define y-value where we want radius of curvature
-        ## We'll choose the maximum y-value, corresponding to the bottom of the image
-        ## Define conversions in x and y from pixels space to meters
-        #ym_per_pix = 30/720 # meters per pixel in y dimension        
-        #xm_per_pix = 3.7/700 # meters per pixel in x dimension
-        #y_eval = np.max(ploty)*ym_per_pix
-        
-        #left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
-        #left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
-        #left_line_pts = np.hstack((left_line_window1, left_line_window2))
-        #right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
-        #right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
-        #right_line_pts = np.hstack((right_line_window1, right_line_window2))        
-        ## Draw the lane onto the warped blank image
-        #window_img = np.zeros_like(polyFitImage)
-        ##print(np.int_([left_fitx]))
-        #cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
-        #cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
-        #result = cv2.addWeighted(result, 1, window_img, 0.4, 0)        
-        #plt.imshow(result)
-      
-        
         ##### TO-DO: Implement the calculation of R_curve (radius of curvature) #####
         left_curverad = (1 + (2*left_fit[0]*y_eval + left_fit[1])**2)**(3/2)/np.absolute(2*left_fit[0])  ## Implement the calculation of the left line here
         right_curverad = (1 + (2*right_fit[0]*y_eval + right_fit[1])**2)**(3/2)/np.absolute(2*right_fit[0])  ## Implement the calculation of the right line here
@@ -528,15 +445,12 @@ def getPolyfit(folderString,fileString):
         print('Right radius of curvature = ', right_curverad)
         
         polyFitWithRoad,topViewRoad = getRoad(result,left_fitx,right_fitx,ploty)
-        
         polyFitImageFilesName = folderString + 'Polyfit/' + filenameOnly 
-        
         img_size = (topViewRoad.shape[1],topViewRoad.shape[0])
         perspectiveImgRoad = cv2.warpPerspective(topViewRoad,Minv,img_size,flags=cv2.INTER_LINEAR)
         perspectiveImgRoad[0:img_size[0]//3,:] = 0
         roadPerspectiveFilesName = folderString + 'rdPersp/' + filenameOnly 
-        
-        
+
         cv2.imwrite(polyFitImageFilesName,polyFitWithRoad)         
         cv2.imwrite(roadPerspectiveFilesName,perspectiveImgRoad)  
 
@@ -546,7 +460,6 @@ if getPolyfitFlag == True:
     fname = folderString + fileString
     getPolyfit(folderString,fileString)
 
-
 def getWithRoadMarkers(folderString,fileString):
     images = glob.glob(folderString + fileString)   # VF_IR_Bullet_8mmFL Database
     for fname in images:
@@ -555,7 +468,6 @@ def getWithRoadMarkers(folderString,fileString):
         #print(fname)
         perspRoad = mpimg.imread(fname)     
         img_size = (perspRoad.shape[1],perspRoad.shape[0])
-        #np.repeat(perspRoad.reshape(img_size[1], img_size[0], 1), 3, axis=2)
         
         undistFilePath = '../test_images/undistImages/'
         undistFname = undistFilePath + filenameOnly
@@ -573,20 +485,4 @@ if getWithRoadMarkersFlag == True:
     getWithRoadMarkers(folderString,fileString)
 
 
-
-
-
-
-
-
-## Plot the result
-#f, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 9))
-#f.tight_layout()
-
-#ax1.imshow(image)
-#ax1.set_title('Original Image', fontsize=40)
-
-#ax2.imshow(result)
-#ax2.set_title('Pipeline Result', fontsize=40)
-#plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
 
