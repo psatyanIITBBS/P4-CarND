@@ -80,17 +80,20 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-This is done on line#560 with the function "fit_polynomial(topViewImg)" in the code "MyLaneFinder.py" in the "./examples/" folder. This function takes the Top View Image as input and extracts the lane-line pixels using two kinds of methods. When an existing fitted polynomial is available, the search is carried out about this curve. Otherwise the window based search from scratch is performed on a frame. The detected lane-line pixels along with the fitted polynomial images corresponding to the original images are shown below::
+This is done on line#560 with the function "fit_polynomial(topViewImg)" in the code "MyLaneFinder.py" in the "./examples/" folder. This function takes the Top View Image as input and extracts the lane-line pixels using two kinds of methods. When an existing fitted polynomial is available, the search is carried out about this curve. Otherwise the window based search from scratch is performed on a frame. The detected lane-line pixels along with the fitted polynomial images corresponding to the original images are shown below:
 
 ![alt text][image5]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+This is done on line#560 with the function "getFinalMarkedRoad()" in the code "MyLaneFinder.py" in the "./examples/" folder. This function takes the PolyFit image of the top view of the road and the inverse Perspective Transform matrix as input and calculates the radius of curvature of the left and the right lane separately. It also calculates the offset of the vehicle form the center of the lane. It calculates the road map in the perspective view of the camera as well. The projected perspective view of the road markings corresponding to the original images are shown below:
+
+![alt text][image5]
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+Finally the perspective projection of the road marking is superimposed on the undistorted image of the first step. The undistorted images with superimposed projected perspective road markings corresponding to the original images are shown below:
+
 
 ![alt text][image6]
 
@@ -100,7 +103,9 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Using the same pipeline as described above, video files are processed frame by frame after extracting frames using the functions "VideoFileClip(fname)" and "fl_image(roadMarkingPipeline)". Then the processed image files are stiched together to make the final video using the "write_videofile() function". The output of the above processing is available at the bolow link:
+
+Output Video: [link to my video result](./output_videos/project_video.mp4)
 
 ---
 
@@ -108,4 +113,6 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The major issues that I am facing are as below:
+1. The pipeline is taking more time than the time between frames for a video of even 25 fps. This a serious drawback as in this form it cannot be used in realtime application.
+2. The pipeline fails to capture on the challenge and the harder challenge videos. The reason for the first case is its failure to distingush road color from that of the lane lines. In th esecond case, the high value of curvature is creating problem. Even when I tries the convolution method the lane-line pixel search, it didn't work. I think the solution lies in increased width of search windows with reduced height. I shall try that. However, that will still increase the time taken to process each frame. 
