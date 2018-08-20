@@ -1,10 +1,7 @@
 # P4-CarND
-## Writeup Template
 
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
+### This document has been prepared as per the template provided for the writeup. It considers th erubric points and all the material is arranged accordingly.
 ---
-
 **Advanced Lane Finding Project**
 
 The goals / steps of this project are the following:
