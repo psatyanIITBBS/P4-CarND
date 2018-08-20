@@ -59,43 +59,28 @@ To demonstrate the un-distortion of images, the "cv2.undistort(img,mtx,dist,None
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-This is done on line#554-556 with the function "sobelFilteredImg(undist)" in the code "MyLaneFinder.py" in the "./examples/" folder. It takes the undistorted image from the previous step and generate a binary image. s_channel threshholding on the hsv-space and sobel filter based gradient filtering of th el-channel is used for generating this binary image. The binary images corresponding to the above mentioned original images are shown below:
+This is done on line#554-556 with the function "sobelFilteredImg(undist)" in the code "MyLaneFinder.py" in the "./examples/" folder. It takes the undistorted image from the previous step and generate a binary image. s_channel threshholding on the hsv-space and sobel filter based gradient filtering of the l-channel is used for generating this binary image. The binary images corresponding to the above mentioned original images are shown below:
 
 ![alt text][image3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
-
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
+The code for my perspective transform is acheived with the function `getTopView(combined_binary)`, which appears in lines#558 of the code.  This function takes as inputs the binary image from the previous step, as well as source (`src`) and destination (`dst`) points to produce the view of the road as if viewed from the top.  I chose the hardcoded source and destination points in the following manner:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 541,489      | 290,324        | 
+| 746,489      | 990,324      |
+| 777,511     | 990,396      |
+| 511,511      | 290,396        |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image. Once the Perspective transform matrix M and the Inverse Perspective transform matrix Minv are evaluated, they have been frozen and are used for all the further processing af all the frames. The top view images corresponding to the above mentioned original images are shown below:
 
 ![alt text][image4]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+This is done on line#560 with the function "fit_polynomial(topViewImg)" in the code "MyLaneFinder.py" in the "./examples/" folder. This function takes the Top View Image as input and extracts the lane-line pixels using two kinds of methods. When an existing fitted polynomial is available, the search is carried out about this curve. Otherwise the window based search from scratch is performed on a frame. The detected lane-line pixels along with the fitted polynomial images corresponding to the original images are shown below::
 
 ![alt text][image5]
 
